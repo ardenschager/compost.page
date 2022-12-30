@@ -13,7 +13,14 @@ const IGNORE_SPACES = true;
 const WILL_DIE = false;
 const TRAVERSE_SPACE_CHANCE = 0.1;
 
+const MOLD_SPAWN_CHANCE = 0.01;
+const MAX_NUM_MOLDS = 5;
+
 const MOVESET = [-1, 0, 1];
+
+const LIFEFORM_TYPES = {
+    Mold: 'mold',
+}
 
 const SYMBOL_MAP = new Proxy(new Map([
     ['a', '.'],
@@ -74,20 +81,20 @@ const SYMBOL_MAP = new Proxy(new Map([
     },
 });
 
-const GRAY = chroma({
-    h: 300,
-    s: 0.05,
-    l: 0.6433
-});
+// const GRAY = chroma({
+//     h: 300,
+//     s: 0.05,
+//     l: 0.6433
+// });
 
-const CREME = chroma({
-    h: 100,
-    s: 0.2,
-    l: 0.9
-});
+// const CREME = chroma({
+//     h: 100,
+//     s: 0.2,
+//     l: 0.9
+// });
 
-const WHITE = chroma({
-    h: 100,
-    s: 0.0,
-    l: 1
-});
+// const WHITE = chroma({
+//     h: 100,
+//     s: 0.0,
+//     l: 1
+// });
