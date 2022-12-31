@@ -27,6 +27,8 @@ coverage
 *.njsproj
 *.sln
 *.sw?
+.eslintrc.cjs
+.prettierrc.json
 
 # Runtime data
 pids

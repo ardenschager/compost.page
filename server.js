@@ -13,7 +13,7 @@ const require = createRequire(import.meta.url);
 
 const natural = require('natural');
 import toxicity from '@tensorflow-models/toxicity';
-// require('@tensorflow/tfjs-node');
+require('@tensorflow/tfjs-node');
 
 const threshold = 0.9;
 let tfModel = null;
@@ -225,6 +225,7 @@ async function sendBackScrape(url, res) {
 		scrape = htmlToText.convert(scrape, { wordwrap: false });
 		scrape = scrape.replace(/(\r\n|\n|\r)/gm, "");
         scrape = await analyzeResult(scrape);
+        console.log("Analysis complete on: " + url);
 		// scrape = processSentiment(scrape);
 		res.send({ scrape: scrape });
 	} catch (e) {
@@ -239,7 +240,7 @@ app.get("/", function (req, res) {
 
 app.post("/scrape", function (req, res) {
 	const targetUrl = req.body.target;
-	console.log("scrape request received for: " + targetUrl);
+	console.log("Scrape request received for: " + targetUrl);
 	sendBackScrape(targetUrl, res);
 });
 

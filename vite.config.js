@@ -20,7 +20,9 @@ export default defineConfig({
     },
     server: {
         proxy: {
-            '/scrape': 'http://localhost:3001'
+            '/scrape': 'https://www.compost.page'
+            // '/scrape': 'http://localhost:3001'
         }
     }
+    
 });
