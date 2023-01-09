@@ -6,7 +6,6 @@ import InputView from "./views/InputView.vue";
 import { createPinia } from 'pinia';
 
 const app = createApp(App);
-
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -18,9 +17,6 @@ const router = createRouter({
     {
       path: "/sim",
       name: "sim",
-      // route level code-splitting
-      // this generates a separate chunk (grid.[hash].js) for this route
-      // which is lazy-loaded when the route is visited.
       component: () => import("./views/SimView.vue"),
     },
   ],
@@ -31,5 +27,6 @@ app.component('v-select', vSelect);
 
 app.use(router);
 app.use(pinia);
+app.config.globalProperties.window = window;
 
 app.mount("#app");

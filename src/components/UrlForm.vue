@@ -29,7 +29,7 @@ function sendInput() {
         }).then(data => {
             const result = JSON.parse(data).scrape;
             if (result.length > 0) {
-                store.initData(result);
+                store.saveScrapeData(result);
                 emit('init');
             } else {
                 console.error("Scrape is blank");
@@ -40,7 +40,17 @@ function sendInput() {
 }
 
 function getOptions() {
-    return ['www.foxnews.com', 'www.nytimes.com'];
+    return [
+                'cameronsworld.net', 
+                'foxnews.com',
+                'nytimes.com', 
+                'taxi1010.com/index0.htm', 
+                'taxi1010.com/juicy-bonus/',
+                'timecube.2enp.com/',
+                'tinyurl.com/sexual-dimorphism',
+                'tinyurl.com/the-suffering',
+                'www.yyyyyyy.info/'
+            ];
 }
 </script>
 

@@ -1,68 +1,100 @@
 <script setup>
-import { onMounted, onUnmounted, ref } from 'vue';
+import { onMounted, onUnmounted, ref, reactive } from 'vue';
 import { useStore } from '@/stores/store';
-import Cell from './Cell.vue';
+// import Cell from './Cell.vue';
+import P5Sketch from './P5Sketch.vue';
 
-const props = defineProps(['width', 'height']);
+const props = defineProps(['width', 'height', 'controls']);
 const store = useStore();
 
 let simWorker = null;
+let isInit = ref(false);
 
 const settings = {
     width: props.width,
     height: props.height,
 }
 
-const simData = ref([]);
 
-function shouldUpdateDatum(idx, datum) {
-    return simData.value[idx] == null || 
-           datum.letter != simData.value[idx].letter || 
-           datum.color != simData.value[idx].color || 
-           datum.bgColor != simData.value[idx].bgColor;
-}
-
-function receiveData(data) {
-    for (let r = 0; r < props.height; r++) {
-        for (let c = 0; c < props.width; c++) {
-            const datum = data[1][r][c];
-            const idx = r * props.width + c;
-            if (shouldUpdateDatum(idx, datum)) {
-                simData.value[idx] = datum;
-            }
-        }
+function initSimData() {
+    const _simData = {};
+    const numCells = settings.width * settings.height;
+    // clear previous timeouts
+    var id = window.setTimeout(function() {}, 0);
+    while (id--) {
+        window.clearTimeout(id); // will do nothing if no timeout with id is present
     }
+    for (let idx = 0; idx < numCells; idx++) {
+        const data = {
+            isInit: true,
+            letter: "",
+            fontColor: "",
+            markColor: "",
+            bgColor: "",
+        }
+        _simData[idx] = data;
+    }
+    return _simData;
 }
 
-function init() {
+// let evenFrame = ref(true);
+// const evenData = reactive(initSimData());
+// const oddData = reactive(initSimData());
+const simData = reactive(initSimData());
+
+function receiveSimData(data) {
+    for (let datum of data[2]) {
+        const idx = datum.coords.row * settings.width + datum.coords.col;
+        // simData[idx].renderDelay = data[0];
+        // if (evenFrame) {
+        //     evenData[idx].isFirstFrame = data[1];
+        //     evenData[idx] = datum.result;
+        // } else {
+        //     oddData[idx].isFirstFrame = data[1];
+        //     oddData[idx] = datum.result;
+        // }
+        simData[idx].isFirstFrame = data[1];
+        simData[idx] = datum.result;
+    }
+    // evenFrame.value = !evenFrame.value;
+    if (!isInit.value) isInit.value = true;
+}
+
+// process scrape data to send to simulation, to turn into sim data
+function initScrapeData() {
     const _scrapeData = [];
     const numCells = settings.width * settings.height;
+    let hasData = false;
     for (let i = 0; i < numCells; i++) {
-        simData[i] = {letter: ".", color: "black", bgColor: "white"};
         if (store.scrapeData[i] != null) {
+            hasData = true;
             const scrapeData = store.scrapeData[i];
             const letter = scrapeData.letter;
             const word = scrapeData.word;
-            const sentence = scrapeData.sentence;
+            // const sentence = scrapeData.sentence;
             const analysis = {
-                identity_attack: scrapeData.analysis.identity_attack,
+                identityAttack: scrapeData.analysis.identity_attack,
                 insult: scrapeData.analysis.insult,
                 obscene: scrapeData.analysis.obscene,
                 sentiment: scrapeData.analysis.sentiment,
                 threat: scrapeData.analysis.threat,
                 toxicity: scrapeData.analysis.toxicity,
-                severe_toxicity: scrapeData.analysis.severe_toxicity,
-                sexual_explicit: scrapeData.analysis.sexual_explicit,
+                severeToxicity: scrapeData.analysis.severe_toxicity,
+                sexualExplicit: scrapeData.analysis.sexual_explicit,
             };
             _scrapeData.push({
                 letter: letter,
                 word: word,
-                sentence: sentence,
+                // sentence: sentence,
                 analysis: analysis,
             });
-        }
+        } 
     }
-    return _scrapeData;
+    if (hasData) {
+        return _scrapeData;
+    } else {
+        return null;
+    }
 }
 
 function reset() {
@@ -70,23 +102,32 @@ function reset() {
         if (simWorker != null) {
             simWorker.terminate();
         }
-        simWorker = new Worker(new URL('../js/sim_worker.js', import.meta.url));
+        simWorker = new Worker(new URL('../sim/worker.js', import.meta.url));
         simWorker.onmessage = (event) => {
-            const data = event.data;
-            receiveData(data);
+            const _simData = event.data;
+            receiveSimData(_simData);
         }
-        const scrapeData = init();
-        const initData = { scrapeData: scrapeData, settings: settings };
-        simWorker.postMessage(['init', initData]);
+        const scrapeData = initScrapeData();
+        if (scrapeData != null) {
+            const initData = { scrapeData: scrapeData, settings: settings };
+            simWorker.postMessage(['init', initData]);
+        } else {
+            console.log("Cannot start sim, no scrape data in store.");
+        }
     }
 }
 
+function sendFood() {
+    simWorker.postMessage(['sendFood']);
+}
+
 defineExpose({
-    reset
-})
+    reset,
+    sendFood
+});
 
 onMounted(() => {
-    reset();
+
 });
 
 onUnmounted(() => {
@@ -98,18 +139,33 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <div class="container">
+    <!-- <div class="container"> -->
+
+        <!-- <div class='row' v-for="r in Number(props.height)">
+            <template v-for="c in Number(props.width)">
+                <Cell v-if="isInit" :data="simData[r-1][c-1]" />
+            </template>
+        </div> -->
+
         <!-- <div class="row" v-for="j in Number(props.height)">
             <Cell v-for="i in Number(props.width)" :i='i' :j='j' :width='Number(props.width)' :height='Number(props.height)'/>
         </div> -->
-        <div class='row' v-for="idx in Number(props.width * props.height)">
-            <Cell :data='simData[idx - 1]' :width='Number(props.width)' :height='Number(props.height)' />
+        <!-- <div class='row' v-for="idx in Number(props.width * props.height)">
+            <Cell :data="oddData[idx-1]" />
+        </div> -->
+
+        <!-- <div v-show="evenFrame.value" class='row' v-for="idx in Number(props.width * props.height)">
+            <Cell :data="oddData[idx-1]" />
         </div>
-    </div>
+        <div v-show="!evenFrame.value" class='row' v-for="idx in Number(props.width * props.height)">
+            <Cell :data="evenData[idx-1]" />
+        </div> -->
+    <!-- </div> -->
+    <P5Sketch :data="simData" :width="props.width" :height="props.height"></P5SKetch>
 </template>
 
 <style scoped>
-.container {
+/* .container {
     display: grid;
     grid-template-columns: repeat(v-bind('props.width'), 1fr);
     grid-template-rows: repeat(v-bind('props.height'), 1fr);
@@ -117,5 +173,6 @@ onUnmounted(() => {
 
 .row {
     grid-auto-rows: fit-content(1em);
-}
+} */
+
 </style>

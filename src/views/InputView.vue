@@ -1,6 +1,10 @@
 <script setup>
 import UrlForm from '../components/UrlForm.vue';
 import { useRouter } from 'vue-router';
+import { useStore } from '@/stores/store';
+
+const store = useStore();
+store.visitedHomePage = true;
 const router = useRouter();
 
 function startSim() {
