@@ -44,6 +44,7 @@ onMounted(() => {
     row-gap: 15px;
     object-fit: cover;
     max-height: 100%;
+    width: 100%;
     overflow: hidden;
 }
 </style>

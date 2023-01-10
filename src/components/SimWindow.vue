@@ -129,5 +129,6 @@ onUnmounted(() => {
 <style scoped>
     #sketch {
         height: 100%;
+        width: 100%;
     }
 </style>
