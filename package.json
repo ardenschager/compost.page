@@ -5,7 +5,7 @@
   "version": "2.0.0",
   "scripts": {
     "dev": "nodemon server.js & vite",
-    "build": "vite build & && rsync src/sim/*.js dist/assets --exclude=worker.js",
+    "build": "vite build && rsync src/sim/*.js dist/assets --exclude=worker.js",
     "preview": "vite preview",
     "build-start": "vite build && rsync src/sim/*.js dist/assets --exclude=worker.js && node server.js",
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs --fix --ignore-path .gitignore"
