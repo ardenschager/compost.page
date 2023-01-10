@@ -132,5 +132,6 @@ watch(props, (newProps, oldProps) => {
     #sketch-canvas {
         width: v-bind('sketchWidth.value');
         height: v-bind('sketchHeight.value');
+        margin: 0 auto;
     }
 </style>
