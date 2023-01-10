@@ -81,17 +81,10 @@ function lerp (start, end, amt){
 }
 
 // https://github.com/everestpipkin/never/blob/master/template.html
-// function randomUnicodeChar (uniRam){
-//     var chars = [];
-//     if (Math.random() > 0.5) {
-//         uniRam = Math.floor(Math.random() * 17535);
-//     }
-//     else if (Math.random() > 0.3) {
-//         uniRam = Math.floor(Math.random() * 3190) + 8600;
-//     }
-//     else {
-//         uniRam = Math.floor(Math.random() * 750);
-//     }
+function randomUnicode (rand=Math.random) {
+    const idx = Math.floor(UNICODES.length * rand());
+    return UNICODES[idx];
+}
 
 // 	var r = String.fromCharCode(uniRam + Math.floor(Math.random()*200))
 // 	//var r = Math.random().toString(36).substring(2,3);

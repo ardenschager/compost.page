@@ -1,13 +1,13 @@
 {
-  "name": "media-composting",
+  "name": "www.compost.page",
   "author": "Nat Schager",
   "type": "module",
   "version": "2.0.0",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
+    "dev": "nodemon server.js & vite",
+    "build": "vite build & && rsync src/sim/*.js dist/assets --exclude=worker.js",
     "preview": "vite preview",
-    "build-start": "vite build && node server.js",
+    "build-start": "vite build && rsync src/sim/*.js dist/assets --exclude=worker.js && node server.js",
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs --fix --ignore-path .gitignore"
   },
   "dependencies": {
@@ -18,9 +18,11 @@
     "express": "^4.18.2",
     "html-to-text": "^8.2.1",
     "natural": "^5.2.4",
-    "node-fetch": "^3.2.10",
+    "node-fetch": "^3.3.0",
+    "p5": "^1.5.0",
     "pinia": "^2.0.28",
     "sanitize-html": "^2.7.3",
+    "util.promisify": "^1.1.1",
     "vue": "^3.2.41",
     "vue-router": "^4.1.6",
     "vue-select": "^4.0.0-beta.6"

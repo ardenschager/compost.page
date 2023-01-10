@@ -64,6 +64,7 @@ class Ecosystem {
             spawnTime: spawnTime, 
             grid: this.grid,
             ecosystem: this,
+            numGenes: Object.keys(MOLD_GENES).length,
         }
         const mold = new Mold(params);
         this._lifeforms.push(mold);
@@ -129,7 +130,7 @@ class Simulation {
     }
     
     popFrameData() {
-        const frameData = [this._sendInterval, this._isFirstFrame, this._grid.getRenderResults()];
+        const frameData = [1000 / this._sendInterval, this._grid.getRenderResults()];
         this._isFirstFrame = false;
         return frameData;
     }

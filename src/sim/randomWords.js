@@ -250,12 +250,12 @@ var wordList = [
 
 function getRandomWord(options, rand=Math.random) {
 
-    if (options.shuffle) {
+    if (options != null && options.shuffle) {
         shuffleArray(wordList);
     }
 
     function word() {
-        if (options && (options.maxLength != null || options.minLength != null)) {
+        if (options != null && (options.maxLength != null || options.minLength != null)) {
             return generateWordWithLengthBounds();
         } else {
             return generateRandomWord();

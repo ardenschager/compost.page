@@ -1,8 +1,9 @@
 importScripts('./chroma.js'); // chroma.js library
 importScripts('./perlin.js'); // perlin noise library
+importScripts('./constants.js');
 importScripts('./utils.js');
 importScripts('./randomWords.js');
-importScripts('./constants.js');
+importScripts('./miscBio.js');
 importScripts('./cells.js');
 importScripts('./lifeforms.js');
 importScripts('./simulation.js');

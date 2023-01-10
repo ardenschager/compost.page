@@ -78,7 +78,7 @@ class SoilCell extends Cell {
         if (scrapeDatum == null) {
             return;
         }
-        this.letter = scrapeDatum.letter;
+        this._letter = scrapeDatum.letter;
         this.word = scrapeDatum.word;
         // this.sentence = scrapeDatum.sentence;
         this.wordIndex = scrapeDatum.wordIndex;
@@ -91,7 +91,6 @@ class SoilCell extends Cell {
         this._sexualExplicitScore = analysis.sexualExplicit;
         this._threatScore = analysis.threat;
         this._toxicityScore = analysis.toxicity;
-
         this._calculateNutrition();
         this._calculateColorsFromScores();
     }
@@ -165,6 +164,10 @@ class SoilCell extends Cell {
         this.bgChroma = bgChroma;
     }
 
+    get letter() {
+        return this._letter.charCodeAt(0);
+    }
+
     get fontColor() {
         return this.fontChroma.hex();
     }
@@ -187,7 +190,7 @@ class DetritusCell extends Cell {
         if (letter == null || letter.length == 0) {
             letter = randomCharString(1);
         }
-        this.letter = letter;
+        this._letter = letter;
     }
 
     getConsumed(amount) {
@@ -232,6 +235,10 @@ class DetritusCell extends Cell {
         return chroma.mix(chroma(this._cellUnder.bgColor), bgChroma, this._clampedNutrition);
     }
 
+    get letter() {
+        return this._letter.charCodeAt(0);
+    }
+
     get fontColor() {
         return this._fontChroma.hex();
     }
@@ -259,17 +266,17 @@ class FoodCell extends DetritusCell {
     }
 
     get _fontChroma() {
-        const fontChroma = this._foodChroma.darken(3).saturate();
+        const fontChroma = this._foodChroma.darken(3).saturate(2);
         return chroma.mix(super._fontChroma, fontChroma, this._clampedNutrition * 0.65);
     }
 
     get _markChroma() {
-        const markChroma = this._foodChroma.darken(0.5).saturate(0.5);
+        const markChroma = this._foodChroma.darken(0.2).saturate(1);
         return chroma.mix(super._markChroma, markChroma, this._clampedNutrition * 0.65);
     }
 
     get _bgChroma() {
-        const bgChroma = this._foodChroma.desaturate(0.75).brighten(0.75);
+        const bgChroma = this._foodChroma.saturate(1);
         return chroma.mix(super._bgChroma, bgChroma, this._clampedNutrition * 0.65);
     }
 }
@@ -293,54 +300,6 @@ class DeadCell extends DetritusCell {
     get markColor() {
         chroma.mix(this._lifeformMarkChroma, chroma(super.markColor), 0.65).hex();
     }
-}
-
-class Stomach {
-    constructor(lifeform) {
-        this._lifeform = lifeform;
-        this._totalNutrition = 0;
-    }
-
-    ingestNutrientFromCell(rate, cell) {
-        const nutrition = cell.getConsumed(rate);
-        const ratio = nutrition / this._totalNutrition;
-        this._totalNutrition += nutrition;
-    }
-
-    digest(rate) {
-        let result = this._totalNutrition - rate;
-        if (result < 0) {
-            result = this._totalNutrition;
-            this._totalNutrition = 0;
-        } else {
-            this._totalNutrition = result;
-        }
-        return result;
-    } 
-
-    set totalNutrition(value) {
-        if (value <= 0) { // clamp
-            this._totalNutrition = 0;
-        } else {
-            this._totalNutrition = value;
-        }
-    }
-
-    get totalNutrition() {
-        return this._totalNutrition;
-    }
-
-    // get fontColor() {
-    //     return this._fontChroma.hex();
-    // }
-
-    // get bgColor() {
-    //     return this._bgChroma.hex();
-    // }
-
-    // get markColor() {
-    //     return this._markChroma.hex();
-    // }
 }
 
 // Base class for lifeform cells
@@ -391,23 +350,40 @@ class LifeformCell extends Cell {
 //     }
 // }
 
+const healthScaleA = chroma.scale(['#c5c5c2', '#cac998', '#90c558']);
+const healthScaleB = chroma.scale(['#9abaad', '#80c6bf', '#6acab2']);
+
+const lifetimeScaleA = chroma.scale(['#ca6454', '#a0cb7a', '#74cf6d', '#58c58d', '#62bb4a']).domain([0, 0.4, 0.63, 0.95, 1]);
+const lifetimeScaleB = chroma.scale(['#c987b8', '#a97f94', '#a06193', '#5d9ea2', '#42bdb7']).domain([0, 0.4, 0.63, 0.95, 1]);
+
+const distFromRootScaleA = chroma.scale(['#4bb29f', '#6ab6ac', '#57afae', '#b774c6']).domain([0, 0.1, 0.63, 1]);;
+const distFromRootScaleB = chroma.scale(['#60bc7c', '#86bc9b', '#b4c693', '#bb9d70']).domain([0, 0.1, 0.63, 1]);
+
 class MoldCell extends LifeformCell {
     constructor(col, row, spawnTime, lifeform, parentCell) {
         super(col, row, spawnTime, lifeform);
         this._init(parentCell);
         this._children = [];
-        this._stomach = new Stomach();
+        this._stomach = new Stomach(this);
         this._soilCell = this.grid.getSoilCell(this.col, this.row);
     }
 
     _init(parentCell) {
         if (parentCell != null) {
             this._parentCell = parentCell;
+            this.health = parentCell.health;
+            if (MOLD_CELL_MUTATE_CHANCE < Math.random) {
+                this.genes = parentCell.genes.mutate();
+            } else {
+                this.genes = parentCell.genes;
+            }
             parentCell.addChild(this);
             this.distanceFromRoot = parentCell.distanceFromRoot + 1;
         } else { // is root
             this.distanceFromRoot = 0;
+            this.genes = this._lifeform.genes;
         }
+        // generate letter set
     }
 
     _eat() {
@@ -419,10 +395,24 @@ class MoldCell extends LifeformCell {
             cellToEat = this._soilCell;
         }
         this._stomach.ingestNutrientFromCell(MOLD_EAT_RATE, cellToEat);
+        this.health += this._stomach.digest(MOLD_DIGEST_RATE);
+    }
+
+    _updateChromas() {
+        const lifetimeChroma = chroma.mix(lifetimeScaleA(Math.min(1, this._lifetime * 0.00001)), lifetimeScaleB(Math.min(1, this._lifetime * 0.00001)), this.genes.getValue(2));
+        const distChroma = chroma.mix(distFromRootScaleA(Math.min(1, this.distanceFromRoot * 0.005)), distFromRootScaleB(Math.min(1, this.distanceFromRoot * 0.005)), this.genes.getValue(3));
+        this._resultChroma = chroma.mix(healthScaleA(Math.min(1, this.health * 0.01)), healthScaleB(Math.min(1, this.health * 0.01)), this.genes.getValue(1));
+        this._resultChroma = chroma.mix(this._resultChroma, distChroma, 0.5);
+        this._resultChroma = chroma.mix(this._resultChroma, lifetimeChroma, 0.9 - 0.6 * Math.min(1, this._lifetime * 0.000005)).brighten(0.5 - 0.5 * Math.min(1, this._lifetime * 0.000005)).saturate(0.5 - 0.5 * Math.min(1, this._lifetime * 0.000005));
+        const underChroma = chroma(this.grid.getSoilCell(this.col, this.row).markColor);
+        this._resultChroma = chroma.mix(underChroma, this._resultChroma, Math.min(this._lifetime * 0.0001, 1));
+        this._resultChroma.set('hsl.h', this._resultChroma.hsv()[0] + 10 * (this.genes.getValue(5) - 0.5) + 0.5, 1);
+        this._resultChroma = chroma.mix(this._resultChroma, this._stomach.markChroma,  Math.min(1, 3 * this._stomach.totalNutrition));
     }
 
     update(deltaTime) {
         super.update(deltaTime);
+        this._updateChromas();
         this._eat();
     }
 
@@ -430,24 +420,30 @@ class MoldCell extends LifeformCell {
         this._children.push(child);
     }
 
+    get allAdjacentCells() {
+        return [...this._children, this.parent];
+    }
+
     get nutrition() {
         return this._stomach.totalNutrition;
     }
 
     get letter() {
-        return '&';
+        const letterList = this.genes.getLetterList();
+        const lifetimeRatio = Math.min(1, this._lifetime * 0.001 * MOLD_LETTER_DIST_INF);
+        return letterList[Math.floor(lifetimeRatio * (letterList.length - 1))]; // already a code
     }
 
     get fontColor() {
-        return chroma.mix('black', 'brown', 0.5 + 0.5 * Math.sin(this._lifetime)).hex();
+        return this._resultChroma.saturate(1.5).darken(2.5).hex();
     }
 
     get markColor() {
-        return chroma.mix('red', 'white', 0.5 + 0.5 * Math.sin(this._lifetime)).hex();
+        return this._resultChroma.hex();
     }
 
     get bgColor() {
-        return chroma.mix('#a96a6a', '#b8afaf', 0.5 + 0.5 * Math.sin(this._lifetime)).hex();
+        return this._resultChroma.desaturate(1.5).brighten(0.5).hex();
     }
 
     get isRoot() {

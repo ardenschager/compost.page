@@ -12,7 +12,7 @@ import { createRequire } from "module";
 const require = createRequire(import.meta.url);
 
 const natural = require('natural');
-import toxicity from '@tensorflow-models/toxicity';
+const toxicity = require('@tensorflow-models/toxicity');
 require('@tensorflow/tfjs-node');
 
 const threshold = 0.9;
@@ -32,33 +32,49 @@ async function getPredictions(sentence) {
     }
 }
 
-const MAX_LEN = 200 * 100;
+// https://stackoverflow.com/questions/2450954/how-to-randomize-shuffle-a-javascript-array
+function shuffleArray(array) {
+    for (var i = array.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var temp = array[i];
+        array[i] = array[j];
+        array[j] = temp;
+    }
+}
+
+const MAX_LEN = 120 * 60; // change me
 // tokenize into sentences, analyze each sentence, and populate letter array
 // with letters and analysis
 async function analyzeResult(scrapeString) {
-    const sentenceTokenizer = new natural.SentenceTokenizer();
+    const tokenizer = new natural.RegexpTokenizer({pattern: /[\!\.\?\*\-\~\(\)\[\]\{\}]/});
     const wordTokenizer = new natural.WordPunctTokenizer();
 
     const Analyzer = natural.SentimentAnalyzer;
     const stemmer = natural.PorterStemmer;
     const sentimentAnalyzer = new Analyzer("English", stemmer, "afinn");
-    const sentences = sentenceTokenizer.tokenize(scrapeString);
-    // console.log(sentences);
+    const sentences = tokenizer.tokenize(scrapeString);
+    shuffleArray(sentences);
     let result = [];
+
     for (let sentence of sentences) {
         let predictions = await getPredictions(sentence);
+        sentence = sentence + " "; // space between sentences
         let words = wordTokenizer.tokenize(sentence);
-        let sentiment = sentimentAnalyzer.getSentiment(words);
+        let sentiment = 1 - (sentimentAnalyzer.getSentiment(words) * 0.5 + 0.5);
         let tfResults = {};
         predictions.forEach((element) => {
             tfResults[element.label] = element.results[0].probabilities[1];
         });
+        if (isNaN(sentiment)) sentiment = 0.5;
         tfResults["sentiment"] = sentiment;
         for (let word of words) {
+            // const wordSentiment = 1 - (sentimentAnalyzer.getSentiment([word]) * 0.5 + 0.5);
+            // tfResults["word_sentiment"] = wordSentiment;
             word = word + " ";
             const letters = [...word];
-            for (let letter of letters) {
-                const gridUnit = {letter: letter, analysis: tfResults, word: word, sentence: sentence};
+            for (let i = 0; i < letters.length; i++) {
+                const letter = letters[i];
+            const gridUnit = { letter: letter, idx: i, analysis: tfResults, word: word, /* sentence: sentence */ };
                 result.push(gridUnit);
             }
         }
@@ -66,16 +82,15 @@ async function analyzeResult(scrapeString) {
     }
     return result;
 }
-
 // import 
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3000;
 
 const app = express();
 app.use(bodyParser.json());
-app.use(express.static("public"));
+app.use(express.static("dist"));
 app.use(bodyParser.urlencoded({ extended: false }));
 // app.use(express.session({
 //   secret: "secret",
@@ -204,6 +219,28 @@ async function fulfillWithTimeLimit(timeLimit, task){
     return response;
 }
 
+// https://javascript.plainenglish.io/lets-make-a-retry-mechanism-a339307d44bc
+const retry = (callback, times = 5, waitout = 100) => {
+    let numberOfTries = 0;
+    return new Promise((resolve) => {
+        const interval = setInterval(async () => {
+            numberOfTries++;
+            if (numberOfTries === times) {
+                console.log(`Trying for the last time... (${times})`);
+                clearInterval(interval);
+            }
+            try {
+                await callback();
+                clearInterval(interval);
+                console.log(`Operation successful, retried ${numberOfTries} times.`);
+                resolve();
+            } catch (err) {
+                console.log(`Unsuccessful, retried ${numberOfTries} times... ${err}`);
+            }
+        }, waitout);
+    });
+};
+
 async function sendBackScrape(url, res) {
 	let scrape = "";
 	const prefix0 = "http://";
@@ -214,28 +251,35 @@ async function sendBackScrape(url, res) {
 	) {
 		url = prefix0 + url;
 	}
-	try {
-		// let response; // todo: learn promise
-		// let promise = new Promise((resolve, reject) => {
-
-		// });
-		const response = await fetch(url);
-		scrape = await response.text();
-		scrape = sanitizeHtml(scrape, SANITIZE_OPTIONS);
-		scrape = htmlToText.convert(scrape, { wordwrap: false });
-		scrape = scrape.replace(/(\r\n|\n|\r)/gm, "");
-        scrape = await analyzeResult(scrape);
-        console.log("Analysis complete on: " + url);
-		// scrape = processSentiment(scrape);
-		res.send({ scrape: scrape });
-	} catch (e) {
-		console.warn(e);
-	}
+    for (let i = 0; i < 10; i++) {
+        try {
+            const response = await fetch(url);
+            scrape = await response.text();
+            scrape = sanitizeHtml(scrape, SANITIZE_OPTIONS);
+            scrape = htmlToText.convert(scrape, { wordwrap: false });
+            scrape = scrape.replace(/[^\x00-\x7F]/g, ""); // ascii only
+            scrape = scrape.replace(/(\r\n|\n|\r)/gm, ""); // no whitespace
+            scrape = await analyzeResult(scrape);
+    
+            console.log("Analysis complete on: " + url);
+            // scrape = processSentiment(scrape);
+            res.send({ scrape: scrape });
+            break;
+        } catch (e) {
+            console.warn("Scrape failed, trying for the " + i + "th time");
+        }
+    }
 }
 
 // define a route - what happens when people visit /
 app.get("/", function (req, res) {
-	res.sendFile(__dirname + "/index.html");
+    console.log(__dirname + "/dist/index.html")
+	res.sendFile(__dirname + "/dist/index.html");
+});
+
+app.get("/sim", function (req, res) {
+    console.log(__dirname + "/dist/index.html")
+	res.sendFile(__dirname + "/dist/index.html");
 });
 
 app.post("/scrape", function (req, res) {

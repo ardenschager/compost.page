@@ -8,21 +8,21 @@ export default defineConfig({
     plugins: [vue()],
     build: {
         outDir: 'dist',
-        manifest: true,
+        manifest: false,
         rollupOptions: {
-            input: 'server.js',
+            // input: 'server.js',
         },
     },
     resolve: {
         alias: {
             "@": fileURLToPath(new URL("./src", import.meta.url)),
+            'vue': 'vue/dist/vue.esm-bundler.js'
         },
     },
     server: {
         proxy: {
-            '/scrape': 'https://www.compost.page'
-            // '/scrape': 'http://localhost:3001'
+            // '/scrape': 'https://www.compost.page'
+            '/scrape': 'http://localhost:3000'
         }
-    }
-    
+    },
 });

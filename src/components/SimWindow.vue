@@ -8,13 +8,14 @@ const props = defineProps(['width', 'height', 'controls']);
 const store = useStore();
 
 let simWorker = null;
-let isInit = ref(false);
+
+const windowWidth = ref(1200);
+const windowHeight = ref(1200);
 
 const settings = {
     width: props.width,
     height: props.height,
 }
-
 
 function initSimData() {
     const _simData = {};
@@ -37,27 +38,14 @@ function initSimData() {
     return _simData;
 }
 
-// let evenFrame = ref(true);
-// const evenData = reactive(initSimData());
-// const oddData = reactive(initSimData());
 const simData = reactive(initSimData());
 
 function receiveSimData(data) {
-    for (let datum of data[2]) {
+    for (let datum of data[1]) {
         const idx = datum.coords.row * settings.width + datum.coords.col;
-        // simData[idx].renderDelay = data[0];
-        // if (evenFrame) {
-        //     evenData[idx].isFirstFrame = data[1];
-        //     evenData[idx] = datum.result;
-        // } else {
-        //     oddData[idx].isFirstFrame = data[1];
-        //     oddData[idx] = datum.result;
-        // }
-        simData[idx].isFirstFrame = data[1];
         simData[idx] = datum.result;
     }
-    // evenFrame.value = !evenFrame.value;
-    if (!isInit.value) isInit.value = true;
+    simData['fps'] = data[0];
 }
 
 // process scrape data to send to simulation, to turn into sim data
@@ -117,17 +105,13 @@ function reset() {
     }
 }
 
-function sendFood() {
-    simWorker.postMessage(['sendFood']);
+function addFood() {
+    simWorker.postMessage(['addFood']);
 }
 
 defineExpose({
     reset,
-    sendFood
-});
-
-onMounted(() => {
-
+    addFood
 });
 
 onUnmounted(() => {
@@ -139,40 +123,11 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <!-- <div class="container"> -->
-
-        <!-- <div class='row' v-for="r in Number(props.height)">
-            <template v-for="c in Number(props.width)">
-                <Cell v-if="isInit" :data="simData[r-1][c-1]" />
-            </template>
-        </div> -->
-
-        <!-- <div class="row" v-for="j in Number(props.height)">
-            <Cell v-for="i in Number(props.width)" :i='i' :j='j' :width='Number(props.width)' :height='Number(props.height)'/>
-        </div> -->
-        <!-- <div class='row' v-for="idx in Number(props.width * props.height)">
-            <Cell :data="oddData[idx-1]" />
-        </div> -->
-
-        <!-- <div v-show="evenFrame.value" class='row' v-for="idx in Number(props.width * props.height)">
-            <Cell :data="oddData[idx-1]" />
-        </div>
-        <div v-show="!evenFrame.value" class='row' v-for="idx in Number(props.width * props.height)">
-            <Cell :data="evenData[idx-1]" />
-        </div> -->
-    <!-- </div> -->
-    <P5Sketch :data="simData" :width="props.width" :height="props.height"></P5SKetch>
+    <P5Sketch id="sketch" :data="simData" :gridWidth="props.width" :gridHeight="props.height" :sketchWidth="windowWidth" :sketchHeight="windowHeight"></P5SKetch>
 </template>
 
 <style scoped>
-/* .container {
-    display: grid;
-    grid-template-columns: repeat(v-bind('props.width'), 1fr);
-    grid-template-rows: repeat(v-bind('props.height'), 1fr);
-}
-
-.row {
-    grid-auto-rows: fit-content(1em);
-} */
-
+    #sketch {
+        height: 100%;
+    }
 </style>
