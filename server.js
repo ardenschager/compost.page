@@ -227,12 +227,21 @@ class DataHelper {
         return tfResult;
     }
 
-    _isFresh(url) {
+    isFresh(url) {
         return this.isCached(url) && this.getTimeSinceLastSave(url) < RESULT_REFRESH_RATE;
     }
 
+    refresh() {
+        for (const url in Object.keys(this._results)) {
+            if (!this.isFresh(url)) {
+                delete this._results[url];
+                delete this._timeStamps[url];
+            }
+        }
+    }
+
     getResult(url) {
-        if (this._isFresh(url)) {
+        if (this.isFresh(url)) {
             console.log("Cache hit on " + url);
             return this._results[url];
         } else {
@@ -311,9 +320,10 @@ for (let url of DEFAULT_URLS) {
 // Cron job
 const REANALYSIS_INTERVAL = 1000 * 60 * 30;
 setInterval(async () => {
+    dataHelper.refresh();
     console.log("starting re-analysis cron job");
     for (let url of DEFAULT_URLS) {
-        await processData(url);
+        await processData(prepUrl(url));
     }
     console.log("re-analysis cron job complete");
 }, REANALYSIS_INTERVAL);
