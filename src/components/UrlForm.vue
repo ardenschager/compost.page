@@ -45,6 +45,7 @@ function getOptions() {
                 'archives.gov/research/military/air-force/ufos',
                 'cameronsworld.net', 
                 'foxnews.com',
+                'neoseeker.com/suffering/',
                 'nytimes.com', 
                 'pastebin.com/FxKf1Xnz',
                 'taxi1010.com/index0.htm', 
@@ -52,7 +53,6 @@ function getOptions() {
                 'timecube.2enp.com/',
                 'tinyurl.com/50-affirmations',
                 'tinyurl.com/sexual-dimorphism',
-                'tinyurl.com/the-suffering',
                 'www.yyyyyyy.info/'
             ];
 }
