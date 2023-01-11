@@ -289,6 +289,7 @@ async function processData(url) {
 }
 
 const DEFAULT_URLS = [
+    'angelfire.com/trek/caver/page9.html',
     'cameronsworld.net', 
     'foxnews.com',
     'nytimes.com', 

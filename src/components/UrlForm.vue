@@ -42,6 +42,7 @@ function sendInput() {
 // todo: move serverside
 function getOptions() {
     return [
+                'angelfire.com/trek/caver/page9.html',
                 'cameronsworld.net', 
                 'foxnews.com',
                 'nytimes.com', 
