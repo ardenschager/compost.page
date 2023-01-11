@@ -42,7 +42,6 @@ function sendInput() {
 // todo: move serverside
 function getOptions() {
     return [
-                'archives.gov/research/military/air-force/ufos',
                 'cameronsworld.net', 
                 'foxnews.com',
                 'nytimes.com', 

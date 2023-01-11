@@ -289,7 +289,6 @@ async function processData(url) {
 }
 
 const DEFAULT_URLS = [
-    'archives.gov/research/military/air-force/ufos',
     'cameronsworld.net', 
     'foxnews.com',
     'nytimes.com', 
