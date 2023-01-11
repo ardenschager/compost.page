@@ -17,14 +17,18 @@ const settings = {
     height: props.height,
 }
 
-function initSimData() {
-    const _simData = {};
-    const numCells = settings.width * settings.height;
+function clearTimeouts() {
     // clear previous timeouts
     var id = window.setTimeout(function() {}, 0);
     while (id--) {
         window.clearTimeout(id); // will do nothing if no timeout with id is present
     }
+}
+
+function initSimData() {
+    const _simData = {};
+    const numCells = settings.width * settings.height;
+    // clearTimeouts();
     for (let idx = 0; idx < numCells; idx++) {
         const data = {
             isInit: true,
@@ -90,6 +94,7 @@ function reset() {
         if (simWorker != null) {
             simWorker.terminate();
         }
+        // clearTimeouts();
         simWorker = new Worker(new URL('../sim/worker.js', import.meta.url));
         simWorker.onmessage = (event) => {
             const _simData = event.data;

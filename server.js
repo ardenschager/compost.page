@@ -273,7 +273,7 @@ async function processData(url) {
             scrape = scrape.replace(/[^\x00-\x7F]/g, ""); // ascii only
             scrape = scrape.replace(/(\r\n|\n|\r)/gm, ""); // no whitespace
             let analysis = await analyzeResult(scrape);
-            if (scrape != null && scrape.length > 0 && analysis != null) {
+            if (scrape != null && scrape.length > 0 && analysis != null && analysis.length > 0) {
                 let result = dataHelper.save(url, analysis);
                 console.log("Analysis complete on: " + url);
                 return result;
@@ -333,7 +333,6 @@ async function sendBackScrape(url, res) {
         result = await processData(url);
     }
     if (result != null) {
-        console.log(result);
         console.log("Sending result for " + url)
         res.send({ scrape: result });
     }
