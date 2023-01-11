@@ -283,7 +283,7 @@ async function processData(url) {
             // scrape = processSentiment(scrape);
         } catch (e) {
             console.warn("Scrape failed, trying for the " + i + "th time");
-            console.warn(e);
+            // console.warn(e);
         }
     }
 }
