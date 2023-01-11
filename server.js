@@ -61,6 +61,7 @@ async function analyzeResult(scrapeString) {
     let result = [];
 
     for (let sentence of sentences) {
+
         let predictions = await getPredictions(sentence);
         if (predictions == null) {
             // console.warn('TF predictions empty');
@@ -82,7 +83,7 @@ async function analyzeResult(scrapeString) {
             const letters = [...word];
             for (let i = 0; i < letters.length; i++) {
                 const letter = letters[i];
-            const gridUnit = { letter: letter, idx: i, analysis: tfResults, word: word, /* sentence: sentence */ };
+                const gridUnit = { letter: letter, idx: i, analysis: tfResults, word: word, /* sentence: sentence */ };
                 result.push(gridUnit);
             }
         }
@@ -213,7 +214,7 @@ const SANITIZE_OPTIONS = {
 	enforceHtmlBoundary: false,
 };
 
-const RESULT_REFRESH_RATE = 1000 * 60 * 30; // 30 mins
+const REANALYSIS_INTERVAL = 1000 * 60 * 30;
 
 class DataHelper {
     constructor() {
@@ -228,7 +229,7 @@ class DataHelper {
     }
 
     isFresh(url) {
-        return this.isCached(url) && this.getTimeSinceLastSave(url) < RESULT_REFRESH_RATE;
+        return this.isCached(url) && this.getTimeSinceLastSave(url) < REANALYSIS_INTERVAL;
     }
 
     refresh() {
@@ -271,9 +272,9 @@ async function processData(url) {
             scrape = htmlToText.convert(scrape, { wordwrap: false });
             scrape = scrape.replace(/[^\x00-\x7F]/g, ""); // ascii only
             scrape = scrape.replace(/(\r\n|\n|\r)/gm, ""); // no whitespace
-            scrape = await analyzeResult(scrape);
-            if (scrape != null) {
-                let result = dataHelper.save(url, scrape);
+            let analysis = await analyzeResult(scrape);
+            if (scrape != null && scrape.length > 0 && analysis != null) {
+                let result = dataHelper.save(url, analysis);
                 console.log("Analysis complete on: " + url);
                 return result;
             } else {
@@ -295,6 +296,7 @@ const DEFAULT_URLS = [
     'taxi1010.com/index0.htm', 
     'taxi1010.com/juicy-bonus/',
     'timecube.2enp.com/',
+    'tinyurl.com/50-affirmations',
     'tinyurl.com/sexual-dimorphism',
     'tinyurl.com/the-suffering',
     'www.yyyyyyy.info/',
@@ -313,7 +315,6 @@ function prepUrl(url) {
 }
 
 // Cron job
-const REANALYSIS_INTERVAL = 1000 * 60 * 30;
 setInterval(async () => {
     dataHelper.refresh();
     console.log("starting re-analysis cron job");
