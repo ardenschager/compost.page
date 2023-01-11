@@ -67,30 +67,43 @@ const spaceColor = chroma('#ffffff');
 class SoilCell extends Cell {
     constructor(col, row, grid, initData) {
         super(col, row, grid);
-        this._initFromData(initData.scrapeData[this.idx]);
+        this._initFromData(initData.scrapeData);
     }
 
     get layerType() {
         return LAYER_TYPES.Soil;
     }
 
-    _initFromData(scrapeDatum) {
-        if (scrapeDatum == null) {
-            return;
+    _initFromData(scrapeData) {
+        let scrapeDatum = scrapeData[this.idx];
+        if (scrapeDatum == null || scrapeDatum.letter == null) {
+            this._letter = randomCharString(1);
+            this.word = this._letter + randomCharString(4);
+            this.wordIndex = 0;
+            this.sentiment = 2 * Math.random() * Math.random() - 0.5;
+            this._identityAttackScore = 0.5 * Math.random() * Math.random();
+            this._insultScore = 0.5 * Math.random() * Math.random();
+            this._obsceneScore = 0.5 * Math.random() * Math.random();
+            this._severeToxicityScore = 0.5 * Math.random() * Math.random();
+            this._sexualExplicitScore = 0.5 * Math.random() * Math.random();
+            this._threatScore = 0.5 * Math.random() * Math.random();
+            this._toxicityScore = 0.5 * Math.random() * Math.random();
+        } else {
+            this._letter = scrapeDatum.letter;
+            this.word = scrapeDatum.word;
+            // this.sentence = scrapeDatum.sentence;
+            this.wordIndex = scrapeDatum.wordIndex;
+            const analysis = scrapeDatum.analysis;
+            this.sentiment = analysis.sentiment;
+            this._identityAttackScore = analysis.identityAttack;
+            this._insultScore = analysis.insult;
+            this._obsceneScore = analysis.obscene;
+            this._severeToxicityScore = analysis.severeToxicity;
+            this._sexualExplicitScore = analysis.sexualExplicit;
+            this._threatScore = analysis.threat;
+            this._toxicityScore = analysis.toxicity;
         }
-        this._letter = scrapeDatum.letter;
-        this.word = scrapeDatum.word;
-        // this.sentence = scrapeDatum.sentence;
-        this.wordIndex = scrapeDatum.wordIndex;
-        const analysis = scrapeDatum.analysis;
-        this.sentiment = analysis.sentiment;
-        this._identityAttackScore = analysis.identityAttack;
-        this._insultScore = analysis.insult;
-        this._obsceneScore = analysis.obscene;
-        this._severeToxicityScore = analysis.severeToxicity;
-        this._sexualExplicitScore = analysis.sexualExplicit;
-        this._threatScore = analysis.threat;
-        this._toxicityScore = analysis.toxicity;
+
         this._calculateNutrition();
         this._calculateColorsFromScores();
     }
@@ -399,7 +412,7 @@ class MoldCell extends LifeformCell {
     }
 
     _updateChromas() {
-        const lifetimeChroma = chroma.mix(lifetimeScaleA(Math.min(1, this._lifetime * 0.00001)), lifetimeScaleB(Math.min(1, this._lifetime * 0.00001)), this.genes.getValue(2));
+        const lifetimeChroma = chroma.mix(lifetimeScaleA(Math.min(1, this._lifetime * 0.000003)), lifetimeScaleB(Math.min(1, this._lifetime * 0.000003)), this.genes.getValue(2));
         const distChroma = chroma.mix(distFromRootScaleA(Math.min(1, this.distanceFromRoot * 0.005)), distFromRootScaleB(Math.min(1, this.distanceFromRoot * 0.005)), this.genes.getValue(3));
         this._resultChroma = chroma.mix(healthScaleA(Math.min(1, this.health * 0.01)), healthScaleB(Math.min(1, this.health * 0.01)), this.genes.getValue(1));
         this._resultChroma = chroma.mix(this._resultChroma, distChroma, 0.5);

@@ -275,7 +275,7 @@ async function processData(url) {
             if (scrape != null) {
                 let result = dataHelper.save(url, scrape);
                 console.log("Analysis complete on: " + url);
-                break;
+                return result;
             } else {
                 console.warning("Analysis failed, trying again on " + url);
             }
@@ -333,7 +333,7 @@ async function sendBackScrape(url, res) {
     url = prepUrl(url);
     let result = dataHelper.getResult(url);
     if (result == null) {
-        await processData(url);
+        result = await processData(url);
     }
     if (result != null) {
         console.log("Sending result for " + url)
