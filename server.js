@@ -293,6 +293,7 @@ const DEFAULT_URLS = [
     'cameronsworld.net', 
     'foxnews.com',
     'nytimes.com', 
+    'pastebin.com/FxKf1Xnz',
     'taxi1010.com/index0.htm', 
     'taxi1010.com/juicy-bonus/',
     'timecube.2enp.com/',
