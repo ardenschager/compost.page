@@ -312,11 +312,6 @@ function prepUrl(url) {
     return url;
 }
 
-for (let url of DEFAULT_URLS) {
-    url = prepUrl(url);
-    await processData(url);
-}
-
 // Cron job
 const REANALYSIS_INTERVAL = 1000 * 60 * 30;
 setInterval(async () => {
@@ -358,6 +353,13 @@ app.post("/scrape", function (req, res) {
 	sendBackScrape(targetUrl, res);
 });
 
-httpServer.listen(PORT, () => {
+httpServer.listen(PORT, async () => {
 	console.log("listening on :" + PORT);
+    console.log("initial scrape: ");
+    // scrape on init
+    for (let url of DEFAULT_URLS) {
+        url = prepUrl(url);
+        await processData(url);
+    }
+    console.log("done")
 });
