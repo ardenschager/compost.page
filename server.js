@@ -46,6 +46,10 @@ const MAX_LEN = 120 * 60; // change me
 // tokenize into sentences, analyze each sentence, and populate letter array
 // with letters and analysis
 async function analyzeResult(scrapeString) {
+    if (scrapeString == null || scrapeString.length == 0) {
+        console.warning("scrape string blank, cannot analyze");
+        return;
+    }
     const tokenizer = new natural.RegexpTokenizer({pattern: /[\!\.\?\*\-\~\(\)\[\]\{\}]/});
     const wordTokenizer = new natural.WordPunctTokenizer();
 
@@ -58,6 +62,10 @@ async function analyzeResult(scrapeString) {
 
     for (let sentence of sentences) {
         let predictions = await getPredictions(sentence);
+        if (predictions == null) {
+            // console.warn('TF predictions empty');
+            continue;
+        }
         sentence = sentence + " "; // space between sentences
         let words = wordTokenizer.tokenize(sentence);
         let sentiment = 1 - (sentimentAnalyzer.getSentiment(words) * 0.5 + 0.5);
@@ -205,45 +213,86 @@ const SANITIZE_OPTIONS = {
 	enforceHtmlBoundary: false,
 };
 
-async function fulfillWithTimeLimit(timeLimit, task){
-    let timeout;
-    const timeoutPromise = new Promise((resolve, reject) => {
-        timeout = setTimeout(() => {
-            resolve("Promise timed out");
-        }, timeLimit);
-    });
-    const response = await Promise.race([task, timeoutPromise]);
-    if(timeout){ //the code works without this but let's be safe and clean up the timeout
-        clearTimeout(timeout);
+const RESULT_REFRESH_RATE = 1000 * 60 * 30; // 30 mins
+
+class DataHelper {
+    constructor() {
+        this._results = {};
+        this._timeStamps = {};
     }
-    return response;
+
+    save(url, tfResult) {
+        this._results[url] = tfResult;
+        this._timeStamps[url] = Date.now();
+        return tfResult;
+    }
+
+    _isFresh(url) {
+        return this.isCached(url) && this.getTimeSinceLastSave(url) < RESULT_REFRESH_RATE;
+    }
+
+    getResult(url) {
+        if (this._isFresh(url)) {
+            console.log("Cache hit on " + url);
+            return this._results[url];
+        } else {
+            return null;
+        }
+    }
+
+    getTimeSinceLastSave(url) {
+        return Date.now() - this._timeStamps[url];
+    }
+
+    isCached(url) {
+        return this._timeStamps[url] != null;
+    }
 }
 
-// https://javascript.plainenglish.io/lets-make-a-retry-mechanism-a339307d44bc
-const retry = (callback, times = 5, waitout = 100) => {
-    let numberOfTries = 0;
-    return new Promise((resolve) => {
-        const interval = setInterval(async () => {
-            numberOfTries++;
-            if (numberOfTries === times) {
-                console.log(`Trying for the last time... (${times})`);
-                clearInterval(interval);
-            }
-            try {
-                await callback();
-                clearInterval(interval);
-                console.log(`Operation successful, retried ${numberOfTries} times.`);
-                resolve();
-            } catch (err) {
-                console.log(`Unsuccessful, retried ${numberOfTries} times... ${err}`);
-            }
-        }, waitout);
-    });
-};
+const dataHelper = new DataHelper();
+const NUM_ATTEMPTS = 15;
 
-async function sendBackScrape(url, res) {
-	let scrape = "";
-	const prefix0 = "http://";
+async function processData(url) {
+    for (let i = 0; i < NUM_ATTEMPTS; i++) {
+        try {
+            console.log(url);
+            const response = await fetch(url);
+            let scrape = await response.text();
+            scrape = sanitizeHtml(scrape, SANITIZE_OPTIONS);
+            scrape = htmlToText.convert(scrape, { wordwrap: false });
+            scrape = scrape.replace(/[^\x00-\x7F]/g, ""); // ascii only
+            scrape = scrape.replace(/(\r\n|\n|\r)/gm, ""); // no whitespace
+            scrape = await analyzeResult(scrape);
+            if (scrape != null) {
+                let result = dataHelper.save(url, scrape);
+                console.log("Analysis complete on: " + url);
+                break;
+            } else {
+                console.warning("Analysis failed, trying again on " + url);
+            }
+            // scrape = processSentiment(scrape);
+        } catch (e) {
+            console.warn("Scrape failed, trying for the " + i + "th time");
+            console.warn(e);
+        }
+    }
+}
+
+const DEFAULT_URLS = [
+    'archives.gov/research/military/air-force/ufos',
+    'cameronsworld.net', 
+    'foxnews.com',
+    'nytimes.com', 
+    'taxi1010.com/index0.htm', 
+    'taxi1010.com/juicy-bonus/',
+    'timecube.2enp.com/',
+    'tinyurl.com/sexual-dimorphism',
+    'tinyurl.com/the-suffering',
+    'www.yyyyyyy.info/',
+]
+
+function prepUrl(url) {
+    const prefix0 = "http://";
 	const prefix1 = "https://";
 	if (
 		url.substr(0, prefix0.length) !== prefix0 &&
@@ -251,23 +300,34 @@ async function sendBackScrape(url, res) {
 	) {
 		url = prefix0 + url;
 	}
-    for (let i = 0; i < 10; i++) {
-        try {
-            const response = await fetch(url);
-            scrape = await response.text();
-            scrape = sanitizeHtml(scrape, SANITIZE_OPTIONS);
-            scrape = htmlToText.convert(scrape, { wordwrap: false });
-            scrape = scrape.replace(/[^\x00-\x7F]/g, ""); // ascii only
-            scrape = scrape.replace(/(\r\n|\n|\r)/gm, ""); // no whitespace
-            scrape = await analyzeResult(scrape);
-    
-            console.log("Analysis complete on: " + url);
-            // scrape = processSentiment(scrape);
-            res.send({ scrape: scrape });
-            break;
-        } catch (e) {
-            console.warn("Scrape failed, trying for the " + i + "th time");
-        }
+    return url;
+}
+
+for (let url of DEFAULT_URLS) {
+    url = prepUrl(url);
+    await processData(url);
+}
+
+// Cron job
+const REANALYSIS_INTERVAL = 1000 * 60 * 30;
+setInterval(async () => {
+    console.log("starting re-analysis cron job");
+    for (let url of DEFAULT_URLS) {
+        await processData(url);
+    }
+    console.log("re-analysis cron job complete");
+}, REANALYSIS_INTERVAL);
+
+async function sendBackScrape(url, res) {
+	let scrape = "";
+    url = prepUrl(url);
+    let result = dataHelper.getResult(url);
+    if (result == null) {
+        await processData(url);
+    }
+    if (result != null) {
+        console.log("Sending result for " + url)
+        res.send({ scrape: result });
     }
 }
 

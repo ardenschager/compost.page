@@ -407,7 +407,11 @@ class MoldCell extends LifeformCell {
         const underChroma = chroma(this.grid.getSoilCell(this.col, this.row).markColor);
         this._resultChroma = chroma.mix(underChroma, this._resultChroma, Math.min(this._lifetime * 0.0001, 1));
         this._resultChroma.set('hsl.h', this._resultChroma.hsv()[0] + 10 * (this.genes.getValue(5) - 0.5) + 0.5, 1);
-        this._resultChroma = chroma.mix(this._resultChroma, this._stomach.markChroma,  Math.min(1, 3 * this._stomach.totalNutrition));
+        this._resultChroma = chroma.mix(this._resultChroma, this._stomach.markChroma,  0.8 * Math.min(1, 1.5 * this._stomach.totalNutrition));
+    }
+
+    receiveNutrientColor(nutrients, chroma) {
+
     }
 
     update(deltaTime) {
@@ -430,8 +434,9 @@ class MoldCell extends LifeformCell {
 
     get letter() {
         const letterList = this.genes.getLetterList();
-        const lifetimeRatio = Math.min(1, this._lifetime * 0.001 * MOLD_LETTER_DIST_INF);
-        return letterList[Math.floor(lifetimeRatio * (letterList.length - 1))]; // already a code
+        const lifetimeRatio = this._lifetime * 0.001 * MOLD_LETTER_DIST_INF;
+        const len = letterList.length - 1;
+        return letterList[Math.floor(lifetimeRatio * len) % len]; // already a code
     }
 
     get fontColor() {
