@@ -81,21 +81,21 @@ function clearIntervals() {
 }
 
 // remove after GA exhibition
-clearIntervals();
-const REFRESH_TIME = 1000 * 60 * 3.5;
-setInterval(() => {
-    targetUrl.value = getRandomUrl();
-    sendInput();
-}, REFRESH_TIME); // after 5m, change page
+// clearIntervals();
+// const REFRESH_TIME = 1000 * 60 * 3.5;
+// setInterval(() => {
+//     targetUrl.value = getRandomUrl();
+//     sendInput();
+// }, REFRESH_TIME); // after 5m, change page
 
-watch(targetUrl, (newVal, oldVal) => {
-    clearIntervals();
-    // remove after GA exhibition
-    setInterval(() => {
-        targetUrl.value = getRandomUrl();
-        sendInput();
-    }, REFRESH_TIME); // after 5m, change page
-})
+// watch(targetUrl, (newVal, oldVal) => {
+//     clearIntervals();
+//     // remove after GA exhibition
+//     setInterval(() => {
+//         targetUrl.value = getRandomUrl();
+//         sendInput();
+//     }, REFRESH_TIME); // after 5m, change page
+// })
 
 </script>
 
