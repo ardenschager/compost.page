@@ -333,6 +333,7 @@ async function sendBackScrape(url, res) {
         result = await processData(url);
     }
     if (result != null) {
+        console.log(result);
         console.log("Sending result for " + url)
         res.send({ scrape: result });
     }
